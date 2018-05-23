@@ -6,6 +6,7 @@ JavaScript で動作する清一色（チンイツ）の待ち判定プログラ
     *入力は半角英数でしてね  
     *りーぱいしなくてもおｋ  
     *１、４、７、１０、１３桁で入力してね  
+    *https://fehaha.github.io/majan/tinitu.html  
   
   
 # 参考にしたサイト
