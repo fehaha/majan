@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="ja-jp">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<title>麻雀の何待ちを表示するプログラム</title>
+
+<script type="text/javascript">
+    var obj = {
+        main: function a() {
+            var tehai = document.frm.tehai.value;
+            var len = tehai.length;
+            var tehaiArray = [0,0,0,0,0,0,0,0,0];
+            var mentsuArray = [0,0,0,0,0,0,0,0,0];
+            var ripaiTehai = [0,0,0,0,0,0,0,0,0];
+            var copyTehai = [];
+            var machi = [];
+            var max = [];
+            
+            var error = 0;
+            var ripaiTehai2 = "";
+
+            var agari = 0;
+
+            //ここで理牌 5641328791243
+            for(var i=0;i<tehai.length;i++) {
+                tehaiArray[i] = tehai.charAt(i);
+            }
+            ripaiTehai = tehaiArray.sort(function(a,b) { return a-b; });
+            
+            //ripaiTehai に0が入る場合があるので0を省く処理
+            ripaiTehai2 = this.setRiipaiZeroDeleted(ripaiTehai);
+
+            //各牌が何枚あるかを配列に入れる処理
+            for(var j=0;j<ripaiTehai.length;j++) {
+                mentsuArray[ ripaiTehai[j]-1 ] = mentsuArray[ ripaiTehai[j]-1 ] + 1;
+            }
+            copyTehai = mentsuArray.concat();
+
+            error = this.checkPaiNum(copyTehai);
+            if(error === 0) { max = this.checkPaiMaxNum(copyTehai); }
+
+            if(len === 1 || len === 4 || len === 7 || len === 10 || len === 13) {
+                machi = this.findMachi(copyTehai,mentsuArray);
+            }
+
+            //待ちの重複の処理
+            //下記の方法でも動くらしい
+            //var a = [1,2,3,3,2,2,5];
+            // アロー関数式
+            //var b1 = a.filter((x, i, self) => self.indexOf(x) === i);
+            // reduceを使用した場合
+            //var b2 = Object.keys(a.reduce((r, x)=>(r[x]=1, r), {})).map(x=>+x);
+            //同じ値が複数あった場合1つにする
+            //machi = Array.from(new Set(machi));
+
+            //someメソッドを使用して特定の値を削除
+            //特定の値＝同じ手牌が4つあって待ち牌がない
+            for(var mx=0;mx<max.length;mx++) {
+                machi.some(function(v, i) {
+                    if(v === max[mx]) { machi.splice(i,1); }
+                });
+            }
+
+            if(machi.length != 0 && error === 0) {
+                machi = machi.sort(function(a,b) { return a-b; });
+                //document.getElementById('result').innerHTML = ripaiTehai2+"<br>"+ copyTehai+" | "+ machi +" 待ちです ->"+ error;
+                document.getElementById('result').innerHTML = ripaiTehai2+"<br>"+ machi +" 待ちです";
+            } else {
+                document.getElementById('result').innerHTML = ripaiTehai2+"<br>ノーテンです "+ len;
+            }
+        },
+        
+        findMachi: function fm(pai,mentsuArray) {
+            var machi = [], atamaKouho = [], tmp = [];
+            var tsumo = 0;
+            var count = 0;
+            var paiStr = "";
+            var p = "";
+
+            for(var a=0;a<9;a++) {
+                if(pai[a] < 4) {
+                    pai[a]++;
+                    tsumo = a + 1;
+                    //p = p + tsumo +" をつもりました　pai[]: "+ this.paiToString(pai) +"<br>";
+                }
+                
+                atamaKouho = this.isJanto(pai); //count++;
+                //console.log("雀頭がみつかりました　"+ atamaKouho);
+                tmp = pai.concat();
+                for(var b=0;b<atamaKouho.length;b++) {
+                    pai[ atamaKouho[b]-1] -= 2;
+                    //console.log(atamaKouho[b] +" を削除しました "+ pai);
+                    for(var c=0;c<9;c++) {
+                        if(pai[c] >= 3) { pai[c] -= 3;}
+                        if(c < 7) {
+                            while(pai[c] >= 1 && pai[c+1] >= 1 && pai[c+2] >= 1) {
+                                pai[c]--; pai[c+1]--; pai[c+2]--;
+                            }
+                        }
+                        //count++;
+                    }
+
+                    if(this.isAgari(pai) === 0) {
+                        machi.push(tsumo);
+                        //console.log(atamaKouho[b]+" 待ちが確定しました　"+ tsumo);
+                        break;
+                    }
+                    pai = tmp.concat();
+                    //count++;
+                }
+                pai = mentsuArray.concat();
+                //count++;
+            }
+
+            //console.log("検索回数: "+ count);
+
+            //document.getElementById("process").innerHTML = p;
+
+            return machi;
+        },
+        
+        isJanto: function aa(pai) {
+            var atama = [];
+            for(var i=0;i<9;i++) {
+                if(pai[i] >= 2) {
+                    atama.push(i+1);
+                }
+            }
+
+            return atama;
+        },
+
+        checkPaiNum: function e(pai) {
+            var error = 0
+            for(var fi=0;fi<9;fi++) {
+                if(pai[fi] >= 5) {
+                    error = fi+1;
+                    break;
+                }
+            }
+
+            return error;
+        },
+
+        checkPaiMaxNum: function f(pai) {
+            var max = [];
+            for(var gi=0;gi<9;gi++) {
+                if(pai[gi] === 4) {
+                    max.push(gi+1);
+                }
+            }
+
+            return max;
+        },
+
+        isAgari: function g(pai) {
+            var val = 0;
+            for(var i=0;i<9;i++) {
+                if(pai[i] >= 1) {
+                    val++
+                }
+            }
+
+            return val;
+        },
+
+        setRiipaiZeroDeleted: function i(ripaiTehai) {
+            var ripaiTehai2 = "";
+
+            for(var ii=0;ii<ripaiTehai.length;ii++) {
+                if(ripaiTehai[ii] > 0) {
+                    ripaiTehai2 += ripaiTehai[ii];
+                }
+            }
+
+            return ripaiTehai2;
+        },
+
+        paiToString: function j(pai) {
+            var str = "";
+            for(var i=0;i<pai.length;i++) {
+                str = str + pai[i];
+            }
+
+            return str;
+        },
+    };
+</script>
+</head>
+<body>
+麻雀、清一色（チンイツ）の待ちを表示するプログラム<br>
+<br>
+バグ等あったら連絡ください <a href="https://twitter.com/fhh6632" target="_blank">@fhh6632</a><br>
+<br>
+<small>ここに更新情報など<br>
+入力は半角英数でしてね<br>
+りーぱいしなくてもおｋ<br>
+１、４、７、１０、１３桁で入力してね<br>
+<br>
+1234555566789<br>
+3,4,6,7,9 待ちです<br>
+<br>
+1112233445666<br>
+1,2,3,4,5,6,7 待ちです<br>
+<br>
+7795965737455<br>
+2,8,9 待ちです<br>
+<br>
+2345666<br>
+1,2,4,5,7 待ちです<br>
+</small><br>
+<form name="frm">
+<input type="text" name="tehai" placeholder="手牌を半角数値で入力">
+<input type="text" name="a" style="display:none">
+<input type="button" id="btn" value="処理" onclick="obj.main()">
+</form>
+<br>
+↓↓↓ここに結果表示される↓↓↓<br>
+<div id="result"></div>
+<br><br>
+<div id="process"></div>
+</body>
+</html>
